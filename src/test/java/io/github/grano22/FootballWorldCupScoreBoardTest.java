@@ -96,6 +96,43 @@ public class FootballWorldCupScoreBoardTest {
         );
     }
 
+    @Test
+    public void scoreBoardWasUpdatedSuccessfullyAfterRemovingSomeGames() {
+        // Arrange
+        var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+        startGames(footballWorldCupScoreBoard, List.of(
+            Map.entry("Mexico", "Canada"),
+            Map.entry("Spain", "Brazil"),
+            Map.entry("Germany", "France"),
+            Map.entry("Uruguay", "Italy"),
+            Map.entry("Argentina", "Australia"),
+            Map.entry("Japan", "Romania")
+        ));
+        footballWorldCupScoreBoard.updateScore(
+            Map.entry("Spain", 12),
+            Map.entry("France", 4),
+            Map.entry("Germany", 9),
+            Map.entry("Romania", 8),
+            Map.entry("Argentina", 4),
+            Map.entry("Australia", 3),
+            Map.entry("Mexico", 7)
+        );
+
+        // Act
+        footballWorldCupScoreBoard.finishGame("Argentina", "Australia");
+        footballWorldCupScoreBoard.finishGame("Spain", "Brazil");
+        footballWorldCupScoreBoard.finishGame("Uruguay", "Italy");
+
+        // Assert
+        assertEquals(
+                """
+                Germany 9 - France 4
+                Japan 0 - Romania 8
+                Mexico 7 - Canada 0""",
+                footballWorldCupScoreBoard.getASummaryOfGamesByTotalScore()
+        );
+    }
+
     private void startGames(FootballWorldCupScoreBoard gameBoard, List<Map.Entry<String, String>> gamesToStart) {
         for (final var game : gamesToStart) {
             gameBoard.startGame(game.getKey(), game.getValue());

@@ -56,6 +56,12 @@ public final class FootballWorldCupScoreBoard {
         }
     }
 
+    public void finishGame(@NonNull String homeTeamName, @NonNull String awayTeamName) {
+        games.remove(new MatchTeams(homeTeamName, awayTeamName));
+        matchRefPerTeam.remove(homeTeamName);
+        matchRefPerTeam.remove(awayTeamName);
+    }
+
     private List<Map.Entry<MatchTeams, MatchScore>> getSortedMatchesByTotalScoreAndRegistrationDate() {
         return games.reversed().entrySet()
             .stream()
