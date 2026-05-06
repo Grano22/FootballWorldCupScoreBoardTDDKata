@@ -1,32 +1,69 @@
 package io.github.grano22;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.*;
 
 public final class FootballWorldCupScoreBoard {
-    private final LinkedHashMap<Map.Entry<String, String>, Map.Entry<Integer, Integer>> games = new LinkedHashMap<>();
+    public record MatchTeams(@NonNull String homeTeamName, @NonNull String awayTeamName) {}
+    public record MatchScore(int homeTeamScore, int awayTeamScore) {}
 
-    public void startGame(String homeTeamName, String awayTeamName) {
-        games.put(
-            new AbstractMap.SimpleImmutableEntry<>(homeTeamName, awayTeamName),
-            new AbstractMap.SimpleEntry<>(0, 0)
-        );
+    private final LinkedHashMap<MatchTeams, MatchScore> games = new LinkedHashMap<>();
+    private final Map<String, MatchTeams> matchRefPerTeam = new HashMap<>();
+
+    public void startGame(@NonNull String homeTeamName, @NonNull String awayTeamName) {
+        final var matchTeams = new MatchTeams(homeTeamName, awayTeamName);
+        games.put(matchTeams, new MatchScore(0, 0));
+        matchRefPerTeam.put(homeTeamName, matchTeams);
+        matchRefPerTeam.put(awayTeamName, matchTeams);
     }
 
-    public String getASummaryOfGamesByTotalScore() {
+    public @NonNull String getASummaryOfGamesByTotalScore() {
         if (games.isEmpty()) {
             return "";
         }
 
         final var summary = new StringJoiner("\n");
-        for (var game : games.reversed().entrySet()) {
+        for (final var game : getSortedMatchesByTotalScoreAndRegistrationDate()) {
             final var matchScore = new StringBuilder();
             matchScore
-                .append(game.getKey().getKey()).append(' ').append(game.getValue().getKey()).append(" - ")
-                .append(game.getKey().getValue()).append(' ').append(game.getValue().getValue())
+                .append(game.getKey().homeTeamName()).append(' ').append(game.getValue().homeTeamScore()).append(" - ")
+                .append(game.getKey().awayTeamName()).append(' ').append(game.getValue().awayTeamScore())
             ;
             summary.add(matchScore);
         }
 
         return summary.toString();
+    }
+
+    @SafeVarargs
+    public final void updateScore(Map.Entry<String, Integer>... teamScoresToUpdate) {
+        for (final var teamScore : teamScoresToUpdate) {
+            final var matchRef = matchRefPerTeam.get(teamScore.getKey());
+            games.compute(
+                    matchRef,
+                    (matchTeams, matchScore) ->
+                            teamScore.getKey().equals(matchTeams.homeTeamName) ?
+                                new MatchScore(
+                                        teamScore.getValue(),
+                                        Optional.ofNullable(matchScore).map(s -> s.awayTeamScore).orElse(0)
+                                ) :
+                                new MatchScore(
+                                        Optional.ofNullable(matchScore).map(s -> s.homeTeamScore).orElse(0),
+                                        teamScore.getValue()
+                                )
+            );
+        }
+    }
+
+    private List<Map.Entry<MatchTeams, MatchScore>> getSortedMatchesByTotalScoreAndRegistrationDate() {
+        return games.reversed().entrySet()
+            .stream()
+            .sorted(Comparator.comparingInt(
+                    (Map.Entry<MatchTeams, MatchScore> game) ->
+                            game.getValue().homeTeamScore() + game.getValue().awayTeamScore()
+            ).reversed())
+            .toList()
+        ;
     }
 }

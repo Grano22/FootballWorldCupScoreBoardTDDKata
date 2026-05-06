@@ -13,6 +13,7 @@ This app is created to capture live matches score and display them in the highes
 
 ## ❔Considerations
 * Should we implement team-based validation guards? Like can the same team play two matches at the same time?
+* Do we want to update the board or read more frequently? I assume update.
 
 ## 📐 Design choices
 
