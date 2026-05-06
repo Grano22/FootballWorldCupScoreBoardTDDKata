@@ -9,6 +9,7 @@ This app is created to capture live matches score and display them in the highes
 * Avoid mocks and other test doubles they are not necessary
 * Focus strictly on the TDD process
 * Use java.util.logging (JUL) for logging to maintain simplicity and avoid external dependencies like SLF4J or Logback.
+* Solution will be single threaded at first glance
 
 ## ❔Considerations
 * Should we implement team-based validation guards? Like can the same team play two matches at the same time?
