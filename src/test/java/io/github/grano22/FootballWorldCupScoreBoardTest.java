@@ -6,12 +6,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class FootballWorldCupScoreBoardTest {
     @Test
     public void scoreBoardIsEmptyWhenNoGamesStarted() {
         // Arrange
-        var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
 
         // Assert & Act
         assertEquals("", footballWorldCupScoreBoard.getASummaryOfGamesByTotalScore());
@@ -20,7 +21,7 @@ public class FootballWorldCupScoreBoardTest {
     @Test
     public void scoreBoardHasShowedRegisteredInitialMatchCorrectly() {
         // Arrange
-        var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
 
         // Act
         footballWorldCupScoreBoard.startGame("Mexico", "Canada");
@@ -36,7 +37,7 @@ public class FootballWorldCupScoreBoardTest {
     @Test
     public void scoreBoardHasShowedRegisteredInitialMatchesOrderedByMostRecentlyAddedEntries() {
         // Arrange
-        var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
 
         // Act
         startGames(footballWorldCupScoreBoard, List.of(
@@ -62,7 +63,7 @@ public class FootballWorldCupScoreBoardTest {
     @Test
     public void scoreBoardHasShowedUpdatedScoreCorrectly() {
         // Arrange
-        var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
         startGames(footballWorldCupScoreBoard, List.of(
             Map.entry("Mexico", "Canada"),
             Map.entry("Spain", "Brazil"),
@@ -99,7 +100,7 @@ public class FootballWorldCupScoreBoardTest {
     @Test
     public void scoreBoardWasUpdatedSuccessfullyAfterRemovingSomeGames() {
         // Arrange
-        var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
         startGames(footballWorldCupScoreBoard, List.of(
             Map.entry("Mexico", "Canada"),
             Map.entry("Spain", "Brazil"),
@@ -131,6 +132,68 @@ public class FootballWorldCupScoreBoardTest {
                 Mexico 7 - Canada 0""",
                 footballWorldCupScoreBoard.getASummaryOfGamesByTotalScore()
         );
+    }
+
+    @Test
+    public void userCannotRegisterSameMatchAtTheSameTimeTwice() {
+        // Arrange
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+
+        // Act
+        footballWorldCupScoreBoard.startGame("Mexico", "Canada");
+        final var exception =  assertThrows(
+                IllegalArgumentException.class,
+                () -> footballWorldCupScoreBoard.startGame("Mexico", "Canada")
+        );
+
+        // Assert
+        assertEquals("Match between Mexico and Canada already registered", exception.getMessage());
+    }
+
+    @Test
+    public void userCannotRegisterTwoDifferentMatchesForTheSameTeam() {
+        // Arrange
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+
+        // Act
+        footballWorldCupScoreBoard.startGame("Mexico", "Canada");
+        final var exception =  assertThrows(
+                IllegalArgumentException.class,
+                () -> footballWorldCupScoreBoard.startGame("Mexico", "Japan")
+        );
+
+        // Assert
+        assertEquals("Team Mexico is already registered", exception.getMessage());
+    }
+
+    @Test
+    public void matchCannotBeRemovedFromTheScoreBoardWhenItIsNotAddedYet() {
+        // Arrange
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+
+        // Act
+        final var exception =  assertThrows(
+                IllegalArgumentException.class,
+                () -> footballWorldCupScoreBoard.finishGame("Mexico", "Japan")
+        );
+
+        // Assert
+        assertEquals("Match between Mexico and Japan is not registered", exception.getMessage());
+    }
+
+    @Test
+    public void teamCannotHaveUpdatedScoreInTheMatchWhenItDoesNotPlayAnyMatch() {
+        // Arrange
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+
+        // Act
+        final var exception =  assertThrows(
+                IllegalArgumentException.class,
+                () -> footballWorldCupScoreBoard.updateScore(Map.entry("Mexico", 11))
+        );
+
+        // Assert
+        assertEquals("Team Mexico is not registered", exception.getMessage());
     }
 
     private void startGames(FootballWorldCupScoreBoard gameBoard, List<Map.Entry<String, String>> gamesToStart) {
