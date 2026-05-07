@@ -13,8 +13,9 @@ public final class FootballWorldCupScoreBoard {
     private final Map<String, MatchTeams> matchRefPerTeam = new HashMap<>();
 
     public void startGame(@NonNull String homeTeamName, @NonNull String awayTeamName) {
-        final var matchTeams = new MatchTeams(homeTeamName, awayTeamName);
+        preventInvalidTeamNames(homeTeamName, awayTeamName);
 
+        final var matchTeams = new MatchTeams(homeTeamName, awayTeamName);
         if (games.containsKey(matchTeams)) {
             throw new IllegalArgumentException("Match between %s and %s already registered".formatted(homeTeamName, awayTeamName));
         }
@@ -44,34 +45,40 @@ public final class FootballWorldCupScoreBoard {
         return summary.toString();
     }
 
-    @SafeVarargs
-    public final void updateScore(Map.Entry<String, Integer>... teamScoresToUpdate) {
-        for (final var teamScore : teamScoresToUpdate) {
-            final var matchRef = matchRefPerTeam.get(teamScore.getKey());
-
-            if (matchRef == null) {
-                throw new IllegalArgumentException("Team %s is not registered".formatted(teamScore.getKey()));
-            }
-
-            games.computeIfPresent(
-                    matchRef,
-                    (_, matchScore) ->
-                            teamScore.getKey().equals(matchRef.homeTeamName) ?
-                                new MatchScore(
-                                        teamScore.getValue(),
-                                        matchScore.awayTeamScore
-                                ) :
-                                new MatchScore(
-                                        matchScore.homeTeamScore,
-                                        teamScore.getValue()
-                                )
-            );
+    public void updateScore(String teamName, int score) {
+        if (score < 0) {
+            throw new IllegalArgumentException("Score cannot be negative");
         }
+
+        if (teamName.isBlank()) {
+            throw new IllegalArgumentException("Team name cannot be empty");
+        }
+
+        final var matchRef = matchRefPerTeam.get(teamName);
+
+        if (matchRef == null) {
+            throw new IllegalArgumentException("Team %s is not registered".formatted(teamName));
+        }
+
+        games.computeIfPresent(
+                matchRef,
+                (_, matchScore) ->
+                        teamName.equals(matchRef.homeTeamName) ?
+                            new MatchScore(
+                                    guardAgainstLowerScore(score, matchScore.homeTeamScore),
+                                    matchScore.awayTeamScore
+                            ) :
+                            new MatchScore(
+                                    matchScore.homeTeamScore,
+                                    guardAgainstLowerScore(score, matchScore.awayTeamScore)
+                            )
+        );
     }
 
     public void finishGame(@NonNull String homeTeamName, @NonNull String awayTeamName) {
-        final var matchTeams = new MatchTeams(homeTeamName, awayTeamName);
+        preventInvalidTeamNames(homeTeamName, awayTeamName);
 
+        final var matchTeams = new MatchTeams(homeTeamName, awayTeamName);
         if (!games.containsKey(matchTeams)) {
             throw new IllegalArgumentException("Match between %s and %s is not registered".formatted(homeTeamName, awayTeamName));
         }
@@ -79,6 +86,19 @@ public final class FootballWorldCupScoreBoard {
         games.remove(matchTeams);
         matchRefPerTeam.remove(homeTeamName);
         matchRefPerTeam.remove(awayTeamName);
+    }
+
+    private void preventInvalidTeamNames(@NonNull String homeTeamName, @NonNull String awayTeamName) {
+        Objects.requireNonNull(homeTeamName, "Home team name is required");
+        Objects.requireNonNull(awayTeamName, "Away team name is required");
+
+        if (homeTeamName.isBlank()) {
+            throw new IllegalArgumentException("Home team name cannot be empty");
+        }
+
+        if (awayTeamName.isBlank()) {
+            throw new IllegalArgumentException("Away team name cannot be empty");
+        }
     }
 
     private void preventRegisteringGameWithSameTeamTwice(@NonNull String homeTeamName, @NonNull String awayTeamName) {
@@ -97,5 +117,13 @@ public final class FootballWorldCupScoreBoard {
             ).reversed())
             .toList()
         ;
+    }
+
+    private int guardAgainstLowerScore(int nextScore, int actualScore) {
+        if (nextScore < actualScore) {
+            throw new IllegalArgumentException("Score cannot be lower than previous score");
+        }
+
+        return nextScore;
     }
 }

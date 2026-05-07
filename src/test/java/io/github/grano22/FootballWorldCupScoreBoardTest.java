@@ -1,14 +1,22 @@
 package io.github.grano22;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class FootballWorldCupScoreBoardTest {
+    private static final String TEST_HOME_TEAM_NAME = "HomeTeam";
+    private static final String TEST_AWAY_TEAM_NAME = "AwayTeam";
+
     @Test
     public void scoreBoardIsEmptyWhenNoGamesStarted() {
         // Arrange
@@ -74,7 +82,8 @@ public class FootballWorldCupScoreBoardTest {
         ));
 
         // Act
-        footballWorldCupScoreBoard.updateScore(
+        updateScores(
+            footballWorldCupScoreBoard,
             Map.entry("Spain", 12),
             Map.entry("France", 4),
             Map.entry("Germany", 9),
@@ -109,7 +118,8 @@ public class FootballWorldCupScoreBoardTest {
             Map.entry("Argentina", "Australia"),
             Map.entry("Japan", "Romania")
         ));
-        footballWorldCupScoreBoard.updateScore(
+        updateScores(
+            footballWorldCupScoreBoard,
             Map.entry("Spain", 12),
             Map.entry("France", 4),
             Map.entry("Germany", 9),
@@ -189,16 +199,152 @@ public class FootballWorldCupScoreBoardTest {
         // Act
         final var exception =  assertThrows(
                 IllegalArgumentException.class,
-                () -> footballWorldCupScoreBoard.updateScore(Map.entry("Mexico", 11))
+                () -> footballWorldCupScoreBoard.updateScore("Mexico", 11)
         );
 
         // Assert
         assertEquals("Team Mexico is not registered", exception.getMessage());
     }
 
-    private void startGames(FootballWorldCupScoreBoard gameBoard, List<Map.Entry<String, String>> gamesToStart) {
+    public static Stream<Arguments> provideInvalidTeamNames() {
+        return Stream.of(
+            Arguments.of(
+                    "Home team name is null",
+                    "Home team name is required",
+                    NullPointerException.class,
+                    null,
+                    TEST_AWAY_TEAM_NAME
+            ),
+            Arguments.of(
+                    "Away team name is null",
+                    "Away team name is required",
+                    NullPointerException.class,
+                    TEST_HOME_TEAM_NAME,
+                    null
+            ),
+            Arguments.of(
+                    "Empty home team name",
+                    "Home team name cannot be empty",
+                    IllegalArgumentException.class,
+                    "",
+                    TEST_AWAY_TEAM_NAME
+            ),
+            Arguments.of(
+                    "Empty away team name",
+                    "Away team name cannot be empty",
+                    IllegalArgumentException.class,
+                    TEST_HOME_TEAM_NAME,
+                    ""
+            )
+        );
+    }
+
+    @ParameterizedTest(name = "Edge Case {index}: {0}, expected success={1}")
+    @MethodSource("provideInvalidTeamNames")
+    public void matchCannotBeAddedToTheScoreBoardIfInvalidTeamNamesWereProvided(
+            String testName,
+            String expectedErrorMessage,
+            Class<? extends Exception> expectedExceptionType,
+            String homeTeamName,
+            String awayTeamName
+    ) {
+        // Arrange
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+
+        // Act
+        final var exception =  assertThrows(
+                expectedExceptionType,
+                () -> footballWorldCupScoreBoard.startGame(homeTeamName, awayTeamName)
+        );
+
+        // Assert
+        assertEquals(expectedErrorMessage, exception.getMessage());
+    }
+
+    public static Stream<Arguments> provideInvalidScoreValues() {
+        return Stream.of(
+                Arguments.of(
+                    "Empty team name",
+                        "Team name cannot be empty",
+                        IllegalArgumentException.class,
+                        "",
+                        12
+                ),
+                Arguments.of(
+                        "Negative score",
+                        "Score cannot be negative",
+                        IllegalArgumentException.class,
+                        TEST_HOME_TEAM_NAME,
+                        -1
+                ),
+                Arguments.of(
+                        "Negative score",
+                        "Score cannot be lower than previous score",
+                        IllegalArgumentException.class,
+                        TEST_AWAY_TEAM_NAME,
+                        2
+                )
+        );
+    }
+
+    @ParameterizedTest(name = "Edge Case {index}: {0}, expected success={1}")
+    @MethodSource("provideInvalidScoreValues")
+    public void matchScoreCannotBeUpdatedWhenInvalidScoreValuesWereProvided(
+            String testName,
+            String expectedErrorMessage,
+            Class<? extends Exception> expectedExceptionType,
+            String teamToUpdateScore,
+            int teamScoreToUpdate
+    ) {
+        // Arrange
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+
+        // Act
+        footballWorldCupScoreBoard.startGame(TEST_HOME_TEAM_NAME, TEST_AWAY_TEAM_NAME);
+        footballWorldCupScoreBoard.updateScore(TEST_AWAY_TEAM_NAME, 3);
+        final var exception =  assertThrows(
+                expectedExceptionType,
+                () -> footballWorldCupScoreBoard.updateScore(teamToUpdateScore, teamScoreToUpdate)
+        );
+
+        // Assert
+        assertEquals(expectedErrorMessage, exception.getMessage());
+    }
+
+    @ParameterizedTest(name = "Edge Case {index}: {0}, expected success={1}")
+    @MethodSource("provideInvalidTeamNames")
+    public void gameCannotBeFinishedWhenInvalidValuesWereProvided(
+            String testName,
+            String expectedErrorMessage,
+            Class<? extends Exception> expectedExceptionType,
+            String homeTeamName,
+            String awayTeamName
+    ) {
+        // Arrange
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+
+        // Act
+        footballWorldCupScoreBoard.startGame(TEST_HOME_TEAM_NAME, TEST_AWAY_TEAM_NAME);
+        footballWorldCupScoreBoard.updateScore(TEST_AWAY_TEAM_NAME, 3);
+        final var exception =  assertThrows(
+                expectedExceptionType,
+                () -> footballWorldCupScoreBoard.finishGame(homeTeamName, awayTeamName)
+        );
+
+        // Assert
+        assertEquals(expectedErrorMessage, exception.getMessage());
+    }
+
+    private void startGames(final FootballWorldCupScoreBoard gameBoard, List<Map.Entry<String, String>> gamesToStart) {
         for (final var game : gamesToStart) {
             gameBoard.startGame(game.getKey(), game.getValue());
+        }
+    }
+
+    @SafeVarargs
+    public final void updateScores(final FootballWorldCupScoreBoard gameBoard, Map.Entry<String, Integer>... teamScoresToUpdate) {
+        for (final var teamScore : teamScoresToUpdate) {
+            gameBoard.updateScore(teamScore.getKey(), Objects.requireNonNull(teamScore.getValue(), "Score cannot be null"));
         }
     }
 }

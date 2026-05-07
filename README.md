@@ -13,8 +13,9 @@ This app is created to capture live matches score and display them in the highes
 * Use explicit over effective final (I'm open for both ways, but I've chosen explicit because it's more readable)
 
 ## ❔Considerations
+
 * Should we implement team-based validation guards? Like can the same team play two matches at the same time?
-* Do we want to update the board or read more frequently? I assume update.
+* Do we want to update the board or read more frequently? I assume updating the board is a more frequent operation.
 
 ## 📐 Design choices
 
