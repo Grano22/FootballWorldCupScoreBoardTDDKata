@@ -44,3 +44,8 @@ java -cp "target/classes:target/dependency/*" io.github.grano22.ScoreboardRadarC
 ## 🪪 License
 
 Distributed under the Unlicense License. See LICENSE.txt for more information.
+
+# New feature:
+
+* New summary -> how many goals shot by teams, sorted by desc by goals, = ASC (alphanum? - contentinent), continent
+* Aggregated contentinent goals (sum)

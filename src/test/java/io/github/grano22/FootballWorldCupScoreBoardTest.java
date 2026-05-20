@@ -1,5 +1,6 @@
 package io.github.grano22;
 
+import io.github.grano22.FootballWorldCupScoreBoard.ContinentGoal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -10,8 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FootballWorldCupScoreBoardTest {
     private static final String TEST_HOME_TEAM_NAME = "HomeTeam";
@@ -32,7 +32,7 @@ public class FootballWorldCupScoreBoardTest {
         final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
 
         // Act
-        footballWorldCupScoreBoard.startGame("Mexico", "Canada");
+        footballWorldCupScoreBoard.startGame("Mexico", "Canada", "Unknown", "Unknown");
 
         // Assert
         assertEquals(
@@ -145,15 +145,37 @@ public class FootballWorldCupScoreBoardTest {
     }
 
     @Test
+    public void goalsWerePrintedDescAndGroupedByContinents() {
+        // Arrange
+        final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
+        footballWorldCupScoreBoard.startGame("Team1", "Team2", "Europe", "America");
+        footballWorldCupScoreBoard.startGame("Team3", "Team4", "Europe", "Asia");
+        footballWorldCupScoreBoard.updateScore("Team1", 4);
+        footballWorldCupScoreBoard.updateScore("Team2", 4);
+        footballWorldCupScoreBoard.updateScore("Team3", 2);
+        footballWorldCupScoreBoard.updateScore("Team4", 1);
+
+        // Act & Assert
+        assertEquals(
+                List.of(
+                    new ContinentGoal("Europe", 6),
+                    new ContinentGoal("America", 4),
+                    new ContinentGoal("Asia", 1)
+                ),
+                footballWorldCupScoreBoard.getGoalsGroupedByContinents()
+        );
+    }
+
+    @Test
     public void userCannotRegisterSameMatchAtTheSameTimeTwice() {
         // Arrange
         final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
 
         // Act
-        footballWorldCupScoreBoard.startGame("Mexico", "Canada");
+        footballWorldCupScoreBoard.startGame("Mexico", "Canada", "Unknown", "Unknown");
         final var exception =  assertThrows(
                 IllegalArgumentException.class,
-                () -> footballWorldCupScoreBoard.startGame("Mexico", "Canada")
+                () -> footballWorldCupScoreBoard.startGame("Mexico", "Canada", "Unknown", "Unknown")
         );
 
         // Assert
@@ -166,10 +188,10 @@ public class FootballWorldCupScoreBoardTest {
         final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
 
         // Act
-        footballWorldCupScoreBoard.startGame("Mexico", "Canada");
+        footballWorldCupScoreBoard.startGame("Mexico", "Canada", "Unknown", "Unknown");
         final var exception =  assertThrows(
                 IllegalArgumentException.class,
-                () -> footballWorldCupScoreBoard.startGame("Mexico", "Japan")
+                () -> footballWorldCupScoreBoard.startGame("Mexico", "Japan", "Unknown", "Unknown")
         );
 
         // Assert
@@ -254,7 +276,7 @@ public class FootballWorldCupScoreBoardTest {
         // Act
         final var exception =  assertThrows(
                 expectedExceptionType,
-                () -> footballWorldCupScoreBoard.startGame(homeTeamName, awayTeamName)
+                () -> footballWorldCupScoreBoard.startGame(homeTeamName, awayTeamName, "Unknown", "Unknown")
         );
 
         // Assert
@@ -300,7 +322,7 @@ public class FootballWorldCupScoreBoardTest {
         final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
 
         // Act
-        footballWorldCupScoreBoard.startGame(TEST_HOME_TEAM_NAME, TEST_AWAY_TEAM_NAME);
+        footballWorldCupScoreBoard.startGame(TEST_HOME_TEAM_NAME, TEST_AWAY_TEAM_NAME, "Unknown", "Unknown");
         footballWorldCupScoreBoard.updateScore(TEST_AWAY_TEAM_NAME, 3);
         final var exception =  assertThrows(
                 expectedExceptionType,
@@ -324,7 +346,7 @@ public class FootballWorldCupScoreBoardTest {
         final var footballWorldCupScoreBoard = new FootballWorldCupScoreBoard();
 
         // Act
-        footballWorldCupScoreBoard.startGame(TEST_HOME_TEAM_NAME, TEST_AWAY_TEAM_NAME);
+        footballWorldCupScoreBoard.startGame(TEST_HOME_TEAM_NAME, TEST_AWAY_TEAM_NAME, "Unknown", "Unknown");
         footballWorldCupScoreBoard.updateScore(TEST_AWAY_TEAM_NAME, 3);
         final var exception =  assertThrows(
                 expectedExceptionType,
@@ -337,7 +359,7 @@ public class FootballWorldCupScoreBoardTest {
 
     private void startGames(final FootballWorldCupScoreBoard gameBoard, List<Map.Entry<String, String>> gamesToStart) {
         for (final var game : gamesToStart) {
-            gameBoard.startGame(game.getKey(), game.getValue());
+            gameBoard.startGame(game.getKey(), game.getValue(), "Unknown", "Unknown");
         }
     }
 

@@ -5,17 +5,34 @@ import org.jspecify.annotations.NonNull;
 import java.util.*;
 import java.util.stream.Stream;
 
+// Collector, Ingestor,
+// RIng buffer, shards per match,  sink (write) -> repository, read -> fan-out
+
 public final class FootballWorldCupScoreBoard {
-    public record MatchTeams(@NonNull String homeTeamName, @NonNull String awayTeamName) {}
-    public record MatchScore(int homeTeamScore, int awayTeamScore) {}
+    private record MatchTeams(
+            @NonNull String homeTeamName,
+            @NonNull String awayTeamName,
+            @NonNull String homeContinentName,
+            @NonNull String awayContinentName
+    ) {}
+
+    private record MatchScore(int homeTeamScore, int awayTeamScore) {}
+    //private record Match(@NonNull MatchTeams teams, int homeTeamScore, int awayTeamScore) {}
+    public record ContinentGoal(String continentName, int goalsAmount) {}
 
     private final LinkedHashMap<MatchTeams, MatchScore> games = new LinkedHashMap<>();
     private final Map<String, MatchTeams> matchRefPerTeam = new HashMap<>();
+    private final Map<String, String> continentPerTeam = new HashMap<>();
 
-    public void startGame(@NonNull String homeTeamName, @NonNull String awayTeamName) {
+    public void startGame(
+            @NonNull String homeTeamName,
+            @NonNull String awayTeamName,
+            @NonNull String homeContinentName,
+            @NonNull String awayContinentName
+    ) {
         preventInvalidTeamNames(homeTeamName, awayTeamName);
 
-        final var matchTeams = new MatchTeams(homeTeamName, awayTeamName);
+        final var matchTeams = new MatchTeams(homeTeamName, awayTeamName, homeContinentName, awayContinentName);
         if (games.containsKey(matchTeams)) {
             throw new IllegalArgumentException("Match between %s and %s already registered".formatted(homeTeamName, awayTeamName));
         }
@@ -25,7 +42,37 @@ public final class FootballWorldCupScoreBoard {
         games.put(matchTeams, new MatchScore(0, 0));
         matchRefPerTeam.put(homeTeamName, matchTeams);
         matchRefPerTeam.put(awayTeamName, matchTeams);
+        continentPerTeam.put(homeTeamName, homeContinentName);
+        continentPerTeam.put(awayTeamName, awayContinentName);
     }
+
+
+    public List<ContinentGoal> getGoalsGroupedByContinents() {
+        var goalsByContinents = new HashMap<String, Integer>();
+
+        for (var game: games.entrySet()) {
+            var teamsName = game.getKey();
+            var scorePerTeam = game.getValue();
+            var homeContinentName = continentPerTeam.get(teamsName.homeTeamName);
+            var awayContinentName = continentPerTeam.get(teamsName.awayTeamName);
+            goalsByContinents.put(homeContinentName, goalsByContinents.getOrDefault(homeContinentName, 0) + scorePerTeam.homeTeamScore);
+            goalsByContinents.put(awayContinentName, goalsByContinents.getOrDefault(awayContinentName, 0) + scorePerTeam.awayTeamScore);
+        }
+
+        return goalsByContinents
+                .entrySet()
+                .stream()
+                .map(entry -> new ContinentGoal(entry.getKey(), entry.getValue()))
+                .sorted(
+                        Comparator.comparingInt(ContinentGoal::goalsAmount)
+                                .reversed()
+                                .thenComparing(ContinentGoal::continentName)
+                )
+                .toList()
+        ;
+    }
+
+    // Struct, Printer (TextPrinter, HTMLPrinter)
 
     public @NonNull String getASummaryOfGamesByTotalScore() {
         if (games.isEmpty()) {
@@ -78,7 +125,7 @@ public final class FootballWorldCupScoreBoard {
     public void finishGame(@NonNull String homeTeamName, @NonNull String awayTeamName) {
         preventInvalidTeamNames(homeTeamName, awayTeamName);
 
-        final var matchTeams = new MatchTeams(homeTeamName, awayTeamName);
+        final var matchTeams = new MatchTeams(homeTeamName, awayTeamName, continentPerTeam.get(homeTeamName), continentPerTeam.get(awayTeamName));
         if (!games.containsKey(matchTeams)) {
             throw new IllegalArgumentException("Match between %s and %s is not registered".formatted(homeTeamName, awayTeamName));
         }
@@ -109,6 +156,7 @@ public final class FootballWorldCupScoreBoard {
     }
 
     private List<Map.Entry<MatchTeams, MatchScore>> getSortedMatchesByTotalScoreAndRegistrationDate() {
+        // O(nlogn) -> O(1)
         return games.reversed().entrySet()
             .stream()
             .sorted(Comparator.comparingInt(

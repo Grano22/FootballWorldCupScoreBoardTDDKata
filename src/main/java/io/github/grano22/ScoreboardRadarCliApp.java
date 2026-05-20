@@ -28,7 +28,7 @@ public class ScoreboardRadarCliApp {
 
     static void handleCommand(String command) {
         switch (command) {
-            case "startGame" -> scoreBoard.startGame(readln("Home team name: "), readln("Away team name: "));
+            case "startGame" -> scoreBoard.startGame(readln("Home team name: "), readln("Away team name: "), "Unknown", "Unknown");
             case "updateScore" -> scoreBoard.updateScore(readln("Team name: "), Integer.parseInt(readln("Score: ")));
             case "finishGame" -> scoreBoard.finishGame(readln("Home team name: "), readln("Away team name: "));
             case "summary" -> println(scoreBoard.getASummaryOfGamesByTotalScore());
